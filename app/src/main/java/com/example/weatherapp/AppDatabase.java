@@ -4,9 +4,6 @@ import android.content.Context;
 
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
-import androidx.room.TypeConverter;
-
-import java.util.Date;
 
 @androidx.room.Database(entities = {DayForecast.class}, version = 1)
 public abstract class AppDatabase extends RoomDatabase {
