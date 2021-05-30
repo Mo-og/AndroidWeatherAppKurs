@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Address;
 import android.location.Location;
 import android.os.Bundle;
@@ -12,6 +13,7 @@ import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -73,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
             else testText.setVisibility(View.INVISIBLE);
         });
         spinAnimation = AnimationUtils.loadAnimation(this, R.anim.roll);
-        tableLayout = findViewById(R.id.daily_forecast_table);
         refreshButton.setOnClickListener(v -> refreshLocation());
 
         loadForecast();
@@ -215,25 +216,89 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("SetTextI18n")
     private void refreshData(Weather weather) {
-
         if (weather == null) {
             Toast.makeText(MainActivity.this, "Предыдущие данные о погоде недоступны!", Toast.LENGTH_SHORT).show();
             return;
         }
+        int shadowColor=ContextCompat.getColor(this, R.color.black);//Color.parseColor("#2FA7D3");
+        int textColor=ContextCompat.getColor(this, R.color.white);
+        int radius = 5;
+        int weatherId = weather.getCurrentForecast().getWeatherId();
+        ImageView background = findViewById(R.id.app_background);
+        TextView currentTemp = findViewById(R.id.current_temp);
+        TextView currentDescr = findViewById(R.id.current_descr);
+        TextView staticFeelsLike = findViewById(R.id.static_feels_like);
+        TextView staticWind = findViewById(R.id.static_wind);
+        TextView staticHumidity = findViewById(R.id.static_humidity);
+        TextView staticPrecipitation = findViewById(R.id.static_precipitation);
+
+        if (weatherId/100==2)
+            background.setBackgroundResource(R.drawable.thunderstorm);
+        if (weatherId/100==3||weatherId/100==5)
+            background.setBackgroundResource(R.drawable.rain);
+        if (weatherId/100==6) {
+            background.setBackgroundResource(R.drawable.snowing);
+            radius=5;
+            textColor=Color.CYAN;
+            shadowColor=Color.BLACK;
+        }
+        if (weatherId/100==7)
+            background.setBackgroundResource(R.drawable.haze);
+        if (weatherId==800)
+            background.setBackgroundResource(R.drawable.clear_sky);
+        if (weatherId==801) {
+            radius = 10;
+            background.setBackgroundResource(R.drawable.few_clouds);
+        }
+        if (weatherId==802) {
+            radius=10;
+            background.setBackgroundResource(R.drawable.skattered_clouds);
+        }
+        if (weatherId==803) {
+            background.setBackgroundResource(R.drawable.broken_clouds);
+            shadowColor=Color.parseColor("#2FA7D3");
+            textColor=Color.BLACK;
+        }
+        if (weatherId==804)
+            background.setBackgroundResource(R.drawable.overcast_clouds);
+
+
+        currentTemp.setTextColor(textColor);
+        currentDescr.setTextColor(textColor);
+        staticFeelsLike.setTextColor(textColor);
+        staticHumidity.setTextColor(textColor);
+        staticPrecipitation.setTextColor(textColor);
+        staticWind.setTextColor(textColor);
+
+        currentTemp.setShadowLayer(radius, 0, 0, shadowColor);
+        currentDescr.setShadowLayer(radius, 0, 0, shadowColor);
+        staticFeelsLike.setShadowLayer(radius, 0, 0, shadowColor);
+        staticHumidity.setShadowLayer(radius, 0, 0, shadowColor);
+        staticPrecipitation.setShadowLayer(radius, 0, 0, shadowColor);
+        staticWind.setShadowLayer(radius, 0, 0, shadowColor);
+
 
         DateFormat formatter = new SimpleDateFormat("EEEE", Locale.getDefault());
-
+        tableLayout = findViewById(R.id.daily_forecast_table);
         int childCount = tableLayout.getChildCount();
         if (childCount > 1) {
             tableLayout.removeViews(1, childCount - 1);
         }
-        TextView currentTemp = findViewById(R.id.current_temp);
-        TextView currentDescr = findViewById(R.id.current_descr);
+
+
 
         TextView feelsLike = findViewById(R.id.feels_like);
+        feelsLike.setShadowLayer(radius, 0, 0, shadowColor);
+        feelsLike.setTextColor(textColor);
         TextView wind = findViewById(R.id.wind_speed);
+        wind.setShadowLayer(radius, 0, 0, shadowColor);
+        wind.setTextColor(textColor);
         TextView humidity = findViewById(R.id.humidity);
+        humidity.setShadowLayer(radius, 0, 0, shadowColor);
+        humidity.setTextColor(textColor);
         TextView precipitation = findViewById(R.id.precipitation);
+        precipitation.setShadowLayer(radius, 0, 0, shadowColor);
+        precipitation.setTextColor(textColor);
 
         currentTemp.setText(Math.round(weather.getCurrentForecast().getTemp()) + "°");
         currentDescr.setText(weather.getCurrentForecast().getDescription());
@@ -242,21 +307,44 @@ public class MainActivity extends AppCompatActivity {
         wind.setText(weather.getCurrentForecast().getWindSpeed() + " м/с");
         humidity.setText(weather.getCurrentForecast().getHumidity() + "%");
         precipitation.setText((int) Math.round(weather.getDailyForecast()[0].getPrecipitation()) + "%");
-        TableRow topRow = new TableRow(this);
-        TextView tempr = new TextView(this);
-        TextView weekDay = new TextView(this);
-        TextView descr = new TextView(this);
-        TextView windSpeed = new TextView(this);
+//        TableRow topRow = new TableRow(this);
+//        TextView tempr = new TextView(this);
+//        TextView weekDay = new TextView(this);
+//        TextView descr = new TextView(this);
+//        TextView windSpeed = new TextView(this);
+//
+//        tempr.setText(R.string.temperature);
+//        tempr.setShadowLayer(radius, 0, 0, shadowColor);
+//        tempr.setTextColor(textColor);
+//        weekDay.setText(R.string.weekday);
+//        weekDay.setShadowLayer(radius, 0, 0, shadowColor);
+//        weekDay.setTextColor(textColor);
+//        descr.setText(R.string.forecast_description);
+//        descr.setShadowLayer(radius, 0, 0, shadowColor);
+//        descr.setTextColor(textColor);
+//        windSpeed.setText(R.string.wind_speed);
+//        windSpeed.setShadowLayer(radius, 0, 0, shadowColor);
+//        windSpeed.setTextColor(textColor);
+//
+//        topRow.addView(tempr);
+//        topRow.addView(weekDay);
+//        topRow.addView(descr);
+//        topRow.addView(windSpeed);
+//        tableLayout.removeViewAt(0);
+//        tableLayout.addView(topRow,0);
 
-        tempr.setText(R.string.temperature);
-        weekDay.setText(R.string.weekday);
-        descr.setText(R.string.forecast_description);
-        windSpeed.setText(R.string.wind_speed);
-
-        topRow.addView(tempr);
-        topRow.addView(weekDay);
-        topRow.addView(descr);
-        topRow.addView(windSpeed);
+        TextView weekDay = findViewById(R.id.static_day);
+        weekDay.setTextColor(textColor);
+        weekDay.setShadowLayer(radius, 0, 0, shadowColor);
+        TextView tempr = findViewById(R.id.static_temp);
+        tempr.setTextColor(textColor);
+        tempr.setShadowLayer(radius, 0, 0, shadowColor);
+        TextView descr = findViewById(R.id.static_forecast);
+        descr.setTextColor(textColor);
+        descr.setShadowLayer(radius, 0, 0, shadowColor);
+        TextView windSpeed = findViewById(R.id.static_wind_bottom);
+        windSpeed.setTextColor(textColor);
+        windSpeed.setShadowLayer(radius, 0, 0, shadowColor);
 
         for (int i = 0; i < weather.getDailyForecast().length; i++) {
             TableRow row = new TableRow(this);
@@ -265,27 +353,32 @@ public class MainActivity extends AppCompatActivity {
             row.setLayoutParams(lp);
 
             TextView dayText = new TextView(this);
-            dayText.setTextColor(ContextCompat.getColor(this, R.color.white));
+            dayText.setTextColor(textColor);
+            dayText.setShadowLayer(radius, 0, 0, shadowColor);
             String weekDayStr = formatter.format(weather.getDailyForecast()[i].getDate());
             weekDayStr = String.valueOf(weekDayStr.charAt(0)).toUpperCase() + weekDayStr.substring(1);
             dayText.setText(weekDayStr);
 
             TextView dayTemp = new TextView(this);
             dayTemp.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-            dayTemp.setTextColor(ContextCompat.getColor(this, R.color.white));
+            dayTemp.setShadowLayer(radius, 0, 0, shadowColor);
+            dayTemp.setTextColor(textColor);
             dayTemp.setText(Math.round(weather.getDailyForecast()[i].getTemp()) + "°");
 
             TextView dayDescr = new TextView(this);
-            dayDescr.setTextColor(ContextCompat.getColor(this, R.color.white));
+            dayDescr.setTextColor(textColor);
+            dayDescr.setShadowLayer(radius, 0, 0, shadowColor);
             dayDescr.setText(weather.getDailyForecast()[i].getDescription());
 
             TextView dayWindSpeed = new TextView(this);
-            dayWindSpeed.setTextColor(ContextCompat.getColor(this, R.color.white));
+            dayWindSpeed.setTextColor(textColor);
+            dayWindSpeed.setShadowLayer(radius, 0, 0, shadowColor);
             dayWindSpeed.setText(Double.toString(weather.getDailyForecast()[i].getWindSpeed()));
 
             TextView dayPrecip = new TextView(this);
             dayPrecip.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-            dayPrecip.setTextColor(ContextCompat.getColor(this, R.color.white));
+            dayPrecip.setTextColor(textColor);
+            dayPrecip.setShadowLayer(radius, 0, 0, shadowColor);
             dayPrecip.setText(Math.round(weather.getDailyForecast()[i].getPrecipitation()) + " м/с");
 //            ImageView imageView = new ImageView(this);
 
@@ -293,7 +386,8 @@ public class MainActivity extends AppCompatActivity {
             row.addView(dayTemp);
             row.addView(dayDescr);
             row.addView(dayPrecip);
-            tableLayout.addView(row, i + 1);
+            int finalI = i;
+            runOnUiThread(() -> tableLayout.addView(row, finalI + 1));
         }
     }
 
@@ -325,8 +419,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void requestData(String lat, String lon) {
-//        if (true)
-//            return;
         System.out.println("Requested new forecast");
         String apiKey = "81d18acbc6ea0f4c8648ea61512deb3e"; //first account
 //        apiKey = "157596984a9aadcef048f98b4a1c7079";//second account

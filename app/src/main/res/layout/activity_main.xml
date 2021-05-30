@@ -8,6 +8,17 @@
     android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
     tools:context=".MainActivity">
 
+    <ImageView
+        android:id="@+id/app_background"
+        android:layout_width="0dp"
+        android:layout_height="729dp"
+        android:background="@android:color/transparent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:contentDescription="@string/background_img" />
+
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
@@ -24,11 +35,25 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
         android:background="#00FFFFFF"
+        android:contentDescription="@string/refresh_button_description"
         app:layout_constraintBottom_toBottomOf="@+id/toolbar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@+id/toolbar"
-        app:srcCompat="@android:drawable/ic_popup_sync"
-        android:contentDescription="@string/refresh_button_description" />
+        app:srcCompat="@android:drawable/ic_popup_sync" />
+
+    <ImageButton
+        android:id="@+id/show_location_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/info_button_descr"
+        android:foregroundTint="@color/white"
+        android:foregroundTintMode="add"
+        app:layout_constraintBottom_toBottomOf="@+id/toolbar"
+        app:layout_constraintStart_toStartOf="@+id/toolbar"
+        app:layout_constraintTop_toTopOf="@+id/toolbar"
+        app:srcCompat="@android:drawable/ic_menu_info_details" />
 
     <TextView
         android:id="@+id/current_location"
@@ -69,7 +94,8 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentTop="true"
                 android:layout_marginTop="0dp"
-                android:shadowColor="#FFFFFF"
+                android:shadowColor="@color/background"
+                android:shadowRadius="5"
                 android:text="@string/cur_temp_placeholder"
                 android:textAlignment="center"
                 android:textColor="@color/white"
@@ -82,10 +108,12 @@
                 android:layout_below="@+id/current_temp"
                 android:layout_marginTop="1dp"
                 android:layout_marginBottom="0dp"
-                android:shadowRadius="0"
+                android:shadowColor="@android:color/holo_blue_light"
+                android:shadowRadius="5"
                 android:text="@string/cur_descr_placeholder"
                 android:textAlignment="center"
-                android:textColor="@color/white" />
+                android:textColor="@color/white"
+                android:textSize="16sp" />
         </RelativeLayout>
 
     </androidx.cardview.widget.CardView>
@@ -114,10 +142,12 @@
                 android:layout_height="match_parent">
 
                 <TextView
-                    android:id="@+id/textView8"
+                    android:id="@+id/static_feels_like"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="10dp"
+                    android:shadowColor="@color/black"
+                    android:shadowRadius="5"
                     android:text="@string/feelsLike"
                     android:textColor="@color/white" />
 
@@ -134,10 +164,12 @@
                 android:layout_height="match_parent">
 
                 <TextView
-                    android:id="@+id/textView9"
+                    android:id="@+id/static_wind"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="10dp"
+                    android:shadowColor="@color/black"
+                    android:shadowRadius="5"
                     android:text="@string/wind"
                     android:textColor="@color/white" />
 
@@ -155,10 +187,12 @@
                 android:layout_height="match_parent">
 
                 <TextView
-                    android:id="@+id/textView10"
+                    android:id="@+id/static_humidity"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="10dp"
+                    android:shadowColor="@color/black"
+                    android:shadowRadius="5"
                     android:text="@string/humidity"
                     android:textColor="@color/white" />
 
@@ -175,10 +209,12 @@
                 android:layout_height="match_parent">
 
                 <TextView
-                    android:id="@+id/textView11"
+                    android:id="@+id/static_precipitation"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="10dp"
+                    android:shadowColor="@color/black"
+                    android:shadowRadius="5"
                     android:text="@string/precipitation"
                     android:textColor="@color/white" />
 
@@ -214,40 +250,48 @@
                 android:gravity="center_horizontal">
 
                 <TextView
-                    android:id="@+id/textView16"
+                    android:id="@+id/static_day"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
+                    android:shadowColor="@color/background"
+                    android:shadowRadius="4"
                     android:text="@string/week_day"
                     android:textAlignment="center"
                     android:textColor="@color/white"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/textView17"
+                    android:id="@+id/static_temp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
+                    android:shadowColor="@color/background"
+                    android:shadowRadius="4"
                     android:text="@string/temperature"
                     android:textAlignment="center"
                     android:textColor="@color/white"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/textView18"
+                    android:id="@+id/static_forecast"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
+                    android:shadowColor="@color/background"
+                    android:shadowRadius="4"
                     android:text="@string/forecast_description"
                     android:textAlignment="center"
                     android:textColor="@color/white"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/textView19"
+                    android:id="@+id/static_wind_bottom"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
+                    android:shadowColor="@color/background"
+                    android:shadowRadius="4"
                     android:text="@string/wind_speed"
                     android:textAlignment="center"
                     android:textColor="@color/white"
@@ -274,25 +318,11 @@
         android:layout_width="15dp"
         android:layout_height="15dp"
         android:layout_marginStart="8dp"
+        android:contentDescription="@string/refresh_button_description"
         android:visibility="invisible"
         app:layout_constraintBottom_toBottomOf="@+id/toolbar"
         app:layout_constraintStart_toEndOf="@+id/current_location"
         app:layout_constraintTop_toTopOf="@+id/toolbar"
-        app:srcCompat="@drawable/geolocation_arrow"
-        android:contentDescription="@string/refresh_button_description" />
-
-    <ImageButton
-        android:id="@+id/show_location_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:background="@android:color/transparent"
-        android:foregroundTint="@color/white"
-        android:foregroundTintMode="add"
-        app:layout_constraintBottom_toBottomOf="@+id/toolbar"
-        app:layout_constraintStart_toStartOf="@+id/toolbar"
-        app:layout_constraintTop_toTopOf="@+id/toolbar"
-        app:srcCompat="@android:drawable/ic_menu_info_details"
-        android:contentDescription="@string/info_button_descr" />
+        app:srcCompat="@drawable/geolocation_arrow" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
