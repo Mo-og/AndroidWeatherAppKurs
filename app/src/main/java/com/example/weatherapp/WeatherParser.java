@@ -22,7 +22,7 @@ public class WeatherParser {
         daily.setSunset(
                 new Date(day.getLong("sunset") * 1000));
         daily.setWindSpeed(
-                day.getDouble("wind_speed"));
+                Math.abs(day.getDouble("wind_speed")));
         daily.setPressure(
                 day.getInt("pressure"));
         try {

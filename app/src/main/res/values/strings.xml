@@ -6,10 +6,11 @@
     <string name="humidity">Влажность:</string>
     <string name="precipitation">Вероятность осадков:</string>
     <string name="internetPermission">Доступ к интернету запрещен пользователем. Проверьте настройки устройства!</string>
+    <string name="locationPermission">Доступ к геопозиции запрещен пользователем. Проверьте настройки устройства!</string>
     <string name="temperature">Темп.°</string>
     <string name="weekday">День</string>
     <string name="forecast_description">Прогноз</string>
-    <string name="wind_speed">Скорость ветра</string>
+    <string name="wind_speed">Ветер</string>
     <string name="week_day">День</string>
 
 
@@ -28,5 +29,10 @@
     <string name="city">City : </string>
     <string name="postalCode">Postal Code : </string>
     <string name="addressLine">Address Line : </string>
+    <string name="cur_temp_placeholder">\?°</string>
+    <string name="cur_descr_placeholder">Описание</string>
+    <string name="city_name_placeholder">Текущее местоположение</string>
+    <string name="refresh_button_description">Обновить данные геопозиции и прогноза</string>
+    <string name="info_button_descr">Показать геолокацию</string>
 
 </resources>

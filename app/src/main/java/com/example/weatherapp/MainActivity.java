@@ -14,6 +14,8 @@ import android.location.Location;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.ImageButton;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -30,57 +32,104 @@ import org.json.JSONException;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import io.nlopez.smartlocation.OnLocationUpdatedListener;
 import io.nlopez.smartlocation.SmartLocation;
+import io.nlopez.smartlocation.location.config.LocationParams;
 
 
 public class MainActivity extends AppCompatActivity {
+    final int CODE_INTERNET = 1;
+    final int CODE_LOCATION = 3;
     private ImageButton refreshButton;
     private TableLayout tableLayout;
     private Location location;
     private Context context;
-    TextView testText;
+    private Animation spinAnimation;
+    private TextView testText;
+    private RequestQueue queue;
+
+    private List<DayForecast> list;
+    private AppDatabase db;
+    private final Executor executor = Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         context = this;
-        testText = (TextView) findViewById(R.id.responseText);
+        testText = findViewById(R.id.responseText);
+        queue = Volley.newRequestQueue(this);
+        db = AppDatabase.getInstance(this);
 
-        refreshButton = (ImageButton) findViewById(R.id.refreshButton);
-        tableLayout = (TableLayout) findViewById(R.id.daily_forecast_table);
-        refreshButton.setOnClickListener(v -> requestData());
+        refreshButton = findViewById(R.id.refreshButton);
+        ImageButton showLocationButton = findViewById(R.id.show_location_button);
+        showLocationButton.setOnClickListener(v -> {
+            if (testText.getVisibility() == View.INVISIBLE)
+                testText.setVisibility(View.VISIBLE);
+            else testText.setVisibility(View.INVISIBLE);
+        });
+        spinAnimation = AnimationUtils.loadAnimation(this, R.anim.roll);
+        tableLayout = findViewById(R.id.daily_forecast_table);
+        refreshButton.setOnClickListener(v -> refreshLocation());
+
+        loadForecast();
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
 
         if (isInternetPermissionGranted()) {
-            requestData();
+            refreshLocation();
         } else
             Toast.makeText(MainActivity.this, R.string.internetPermission, Toast.LENGTH_SHORT).show();
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 3);
+            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, CODE_LOCATION);
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+                Toast.makeText(MainActivity.this, R.string.locationPermission, Toast.LENGTH_SHORT).show();
         } else
-            SmartLocation.with(this).location()
-                    .oneFix()
-                    .start(new OnLocationUpdatedListener() {
-                        @Override
-                        public void onLocationUpdated(Location l) {
-                            location = l;
-                            System.out.println("GOT LOCATION!");
-                        }
-                    });
+            refreshLocation();
+    }
+
+    public void saveForecast(Weather weather) {
+        executor.execute(() -> db.dayForecastDAO().deleteAll());
+        executor.execute(() -> db.dayForecastDAO().insertDayForecast(weather.getCurrentForecast()));
+        for (DayForecast d : weather.getDailyForecast())
+            executor.execute(() -> db.dayForecastDAO().insertDayForecast(d));
+        executor.execute(() -> list = db.dayForecastDAO().getAll());
+        testText.setText(list.toString());
+    }
+
+
+    public void loadForecast() {
+        executor.execute(() -> {
+            list = db.dayForecastDAO().getAll();
+            if (list == null || list.isEmpty()) {
+                System.out.println("DaysForecast list from DB is empty: " + list);
+            } else {
+                Weather weather = new Weather();
+                weather.setCurrentForecast(list.get(0));
+                list.remove(0);
+                DayForecast[] dayForecasts = new DayForecast[list.size()];
+                for (int i = 0; i < list.size(); i++) {
+                    dayForecasts[i] = list.get(i);
+                }
+                weather.setDailyForecast(dayForecasts);
+                refreshData(weather);
+            }
+        });
     }
 
 
     private boolean isInternetPermissionGranted() {
         if (checkSelfPermission(Manifest.permission.INTERNET) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.INTERNET}, 1);
+            requestPermissions(new String[]{Manifest.permission.INTERNET}, CODE_INTERNET);
             return checkSelfPermission(Manifest.permission.INTERNET) == PackageManager.PERMISSION_GRANTED;
         }
         return true;
@@ -89,25 +138,16 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull @NotNull String[] permissions, @NonNull @NotNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        SmartLocation.with(context).location()
-                .oneFix()
-                .start(new OnLocationUpdatedListener() {
-                    @Override
-                    public void onLocationUpdated(Location l) {
-                        location = l;
-                        System.out.println("GOT LOCATION!");
-                        doGeocoding();
-                    }
-                });
+        refreshLocation();
     }
 
     private boolean isAwaitingGeocoding = false;
 
     private void checkLater(int tries) {
         if (isAwaitingGeocoding) return;
-        else isAwaitingGeocoding = true;
+        isAwaitingGeocoding = true;
         final int attempts = tries;
-        Thread thread = new Thread(() -> {
+        final Thread thread = new Thread(() -> {
             int time = attempts;
             while (time-- > 0) {
                 try {
@@ -117,10 +157,13 @@ public class MainActivity extends AppCompatActivity {
                 }
                 if (location != null) {
                     doGeocoding();
+                    isAwaitingGeocoding = false;
                     return;
                 }
-                if (time <= 0)
+                if (time <= 0) {
                     isAwaitingGeocoding = false;
+                    return;
+                }
             }
         });
         thread.start();
@@ -128,44 +171,65 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void doGeocoding() {
+    private void tryGeocoding() {
         if (location != null)
-            SmartLocation.with(context).geocoding()
-                    .reverse(location, (original, results) -> {
-                        if (!results.isEmpty()) {
-                            System.out.println("RESULTS FOUND!");
-                            Address address = results.get(results.size() - 1);
-                            testText.setText(String.valueOf(address.getAddressLine(0)));
-                            TextView city = findViewById(R.id.current_location);
-                            city.setText(address.getSubLocality());
-                            requestData(location.getLatitude(), location.getLongitude());
-                            findViewById(R.id.location_arrow_img).setVisibility(View.VISIBLE);
-                        } else System.out.println("RESULTS ARE EMPTY");
-                        isAwaitingGeocoding = false;
-                    });
+            doGeocoding();
         else checkLater(5);
     }
 
-    @SuppressLint("SetTextI18n")
-    private void refreshData(String jsonResponse) {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 3);
+    private void stopLocating() {
+        SmartLocation.with(context).location().stop();
+        SmartLocation.with(context).geocoding().stop();
+        SmartLocation.with(context).activity().stop();
+    }
+
+    private void doGeocoding() {
+        refreshButton.clearAnimation();
+        if (location != null) {
+            SmartLocation.with(context).geocoding()
+                    .reverse(location, (original, results) -> {
+                        if (!results.isEmpty()) {
+                            Address address = results.get(results.size() - 1);
+                            testText.setText(String.valueOf(address.getAddressLine(0)));
+                            TextView city = findViewById(R.id.current_location);
+                            if (address.getSubLocality() == null)
+                                city.setText("Текущее местоположение");
+                            else
+                                city.setText(address.getSubLocality());
+                            requestData(location.getLatitude(), location.getLongitude());
+                            findViewById(R.id.location_arrow_img).setVisibility(View.VISIBLE);
+                        } else
+                            System.out.println("RESULTS ARE EMPTY - address not found for current location");
+                    });
         }
-        doGeocoding();
+    }
+
+    private Weather parseWeather(String jsonResponse) {
         Weather weather = new Weather();
-        DateFormat formatter = new SimpleDateFormat("EEEE", Locale.getDefault());
-        int childCount = tableLayout.getChildCount();
-        if (childCount > 1) {
-            tableLayout.removeViews(1, childCount - 1);
-        }
         try {
             weather = WeatherParser.getWeather(jsonResponse);
         } catch (JSONException e) {
             e.printStackTrace();
             Toast.makeText(MainActivity.this, "Произошла ошибка при обработке ответа сервера!", Toast.LENGTH_SHORT).show();
         }
+        saveForecast(weather);
+        return weather;
+    }
 
+    @SuppressLint("SetTextI18n")
+    private void refreshData(Weather weather) {
+
+        if (weather == null) {
+            Toast.makeText(MainActivity.this, "Предыдущие данные о погоде недоступны!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        DateFormat formatter = new SimpleDateFormat("EEEE", Locale.getDefault());
+
+        int childCount = tableLayout.getChildCount();
+        if (childCount > 1) {
+            tableLayout.removeViews(1, childCount - 1);
+        }
         TextView currentTemp = findViewById(R.id.current_temp);
         TextView currentDescr = findViewById(R.id.current_descr);
 
@@ -178,9 +242,9 @@ public class MainActivity extends AppCompatActivity {
         currentDescr.setText(weather.getCurrentForecast().getDescription());
 
         feelsLike.setText(Math.round(weather.getCurrentForecast().getFeelsLike()) + "°");
-        wind.setText(Double.toString(weather.getCurrentForecast().getWindSpeed()) + " м/с");
-        humidity.setText(Integer.toString(weather.getCurrentForecast().getHumidity()) + "%");
-        precipitation.setText(Integer.toString((int) Math.round(weather.getDailyForecast()[0].getPrecipitation())) + "%");
+        wind.setText(weather.getCurrentForecast().getWindSpeed() + " м/с");
+        humidity.setText(weather.getCurrentForecast().getHumidity() + "%");
+        precipitation.setText((int) Math.round(weather.getDailyForecast()[0].getPrecipitation()) + "%");
         TableRow topRow = new TableRow(this);
         TextView tempr = new TextView(this);
         TextView weekDay = new TextView(this);
@@ -212,7 +276,7 @@ public class MainActivity extends AppCompatActivity {
             TextView dayTemp = new TextView(this);
             dayTemp.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
             dayTemp.setTextColor(ContextCompat.getColor(this, R.color.white));
-            dayTemp.setText(Long.toString(Math.round(weather.getDailyForecast()[i].getTemp())) + "°");
+            dayTemp.setText(Math.round(weather.getDailyForecast()[i].getTemp()) + "°");
 
             TextView dayDescr = new TextView(this);
             dayDescr.setTextColor(ContextCompat.getColor(this, R.color.white));
@@ -225,7 +289,7 @@ public class MainActivity extends AppCompatActivity {
             TextView dayPrecip = new TextView(this);
             dayPrecip.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
             dayPrecip.setTextColor(ContextCompat.getColor(this, R.color.white));
-            dayPrecip.setText(String.valueOf(Math.round(weather.getDailyForecast()[i].getPrecipitation())) + " м/с");
+            dayPrecip.setText(Math.round(weather.getDailyForecast()[i].getPrecipitation()) + " м/с");
 //            ImageView imageView = new ImageView(this);
 
             row.addView(dayText);
@@ -236,10 +300,27 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void requestData() {
-        String lat = "46.482525";
-        String lon = "30.723309";
-        requestData(lat, lon);
+    //one time location refreshing, resolving address and displaying new forecast
+    private void refreshLocation() {
+        if (refreshButton != null)
+            refreshButton.startAnimation(spinAnimation);
+
+        final int[] counter = {1};
+        SmartLocation.with(this).location().config(LocationParams.NAVIGATION).continuous()
+//                .oneFix()
+                .start(l -> {
+                    if (location != null) {
+                        if ((location.getLatitude() - l.getLatitude() <= 0.003
+                                && location.getLongitude() - l.getLongitude() <= 0.003 && counter[0]++ >= 2) || counter[0] >= 8) {
+                            counter[0] = 0;
+                            stopLocating();
+                        }
+                    }
+                    location = l;
+                    System.out.println("GOT LOCATION!");
+                    if (counter[0]++ == 0)
+                        doGeocoding();
+                });
     }
 
     public void requestData(double lat, double lon) {
@@ -247,13 +328,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void requestData(String lat, String lon) {
-        String requestUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=" + lat + "&lon=" + lon + "&exclude=minutely,hourly,alerts&appid=cbac1812fd456279a96a26a52409bdaa&lang=ru&units=metric";
-        RequestQueue queue = Volley.newRequestQueue(this);
-        final TextView textView = (TextView) findViewById(R.id.responseText);
+//        if (true)
+//            return;
+        System.out.println("Requested new forecast");
+        String apiKey = "81d18acbc6ea0f4c8648ea61512deb3e"; //first account
+//        apiKey = "157596984a9aadcef048f98b4a1c7079";//second account
+//        apiKey ="81d18acbc6ea0f4c8648ea61addwqdqqwfqf23f512deb3e"; // invalid
+        String requestUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=" + lat + "&lon=" + lon + "&exclude=minutely,hourly,alerts&appid=" + apiKey + "&lang=ru&units=metric";
+        final TextView textView = findViewById(R.id.responseText);
 // Request a string response from the provided URL.
         StringRequest stringRequest = new StringRequest(Request.Method.GET, requestUrl,
-                request -> refreshData(request.toString()),
-                error -> Toast.makeText(MainActivity.this, "Произошла ошибка сервера!", Toast.LENGTH_SHORT).show());
+                request -> {
+                    System.out.println("Got forecast successfully!");
+                    refreshData(parseWeather(request));
+                },
+                error -> {
+                    System.out.println("Failed to get forecast!");
+                    Toast.makeText(MainActivity.this, "Нет подключения к интернету, либо произошла ошибка сервера прогнозов!", Toast.LENGTH_LONG).show();
+                });
 
 // Add the request to the RequestQueue.
         queue.add(stringRequest);
